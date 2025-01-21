@@ -1,0 +1,9 @@
+name: backend
+description: Back-end do aplicativo de veículos.
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  shelf: ^1.4.2
+  mysql1: ^0.20.0
+  logger: ^1.4.0
