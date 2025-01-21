@@ -6,4 +6,5 @@ environment:
 dependencies:
   shelf: ^1.4.2
   mysql1: ^0.20.0
+  bcrypt: ^1.1.3 # Versão compatível com o seu ambiente
   logger: ^1.4.0

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:bcrypt/bcrypt.dart'; // Import necessário para bcrypt
 import '../db_connection.dart';
 
 class CadastroScreen extends StatefulWidget {
@@ -17,27 +18,27 @@ class _CadastroScreenState extends State<CadastroScreen> {
       TextEditingController();
 
   String _message = '';
-  double _scaleCadastrar = 1.0; // Controle da escala do botão Cadastrar
+  double _scaleCadastrar = 1.0;
 
-  // Função para validar o e-mail
+  // Método para validar email
   bool _isValidEmail(String email) {
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     return emailRegex.hasMatch(email);
   }
 
-  // Função para validar a senha
+  // Método para validar senha
   bool _isValidPassword(String password) {
     final passwordRegex = RegExp(r'^(?=.*[a-zA-Z])(?=.*\d).{8,}$');
     return passwordRegex.hasMatch(password);
   }
 
+  // Método para cadastrar o usuário
   Future<void> _cadastrarUsuario() async {
     final nome = _nomeController.text.trim();
     final email = _emailController.text.trim();
     final senha = _senhaController.text.trim();
     final confirmaSenha = _confirmaSenhaController.text.trim();
 
-    // Validações
     if (nome.isEmpty ||
         email.isEmpty ||
         senha.isEmpty ||
@@ -73,9 +74,11 @@ class _CadastroScreenState extends State<CadastroScreen> {
     try {
       var conn = await DBConnection.getConnection();
 
+      // Gerar hash da senha antes de salvar
+      final hashedPassword = BCrypt.hashpw(senha, BCrypt.gensalt());
       var result = await conn.query(
         'INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)',
-        [nome, email, senha],
+        [nome, email, hashedPassword],
       );
 
       if (result.affectedRows == 1) {
@@ -109,7 +112,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Título de Boas-Vindas
             Text(
               'Crie sua conta',
               style: GoogleFonts.inter(
@@ -119,8 +121,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Campo Nome
             TextField(
               controller: _nomeController,
               style: GoogleFonts.inter(
@@ -142,8 +142,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Campo Email
             TextField(
               controller: _emailController,
               style: GoogleFonts.inter(
@@ -165,8 +163,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Campo Senha
             TextField(
               controller: _senhaController,
               obscureText: true,
@@ -189,8 +185,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Campo Confirmar Senha
             TextField(
               controller: _confirmaSenhaController,
               obscureText: true,
@@ -213,8 +207,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Botão de Cadastro com Efeito de Zoom
             GestureDetector(
               onTap: _cadastrarUsuario,
               onTapDown: (_) => setState(() => _scaleCadastrar = 0.9),
@@ -248,8 +240,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Link para Voltar
             InkWell(
               onTap: () {
                 Navigator.pop(context);
@@ -262,8 +252,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 ),
               ),
             ),
-
-            // Mensagem de Erro ou Sucesso
             if (_message.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 16),

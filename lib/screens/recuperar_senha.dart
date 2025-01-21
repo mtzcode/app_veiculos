@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:bcrypt/bcrypt.dart';
 import '../db_connection.dart';
 
 class RecuperarSenhaScreen extends StatefulWidget {
@@ -18,6 +19,11 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
   String _message = '';
   bool _isHoveredVoltar = false;
   double _scaleAlterarSenha = 1.0;
+
+  // Função para hashear a senha
+  String hashPassword(String plainPassword) {
+    return BCrypt.hashpw(plainPassword, BCrypt.gensalt());
+  }
 
   Future<void> _alterarSenha() async {
     final email = _emailController.text.trim();
@@ -46,9 +52,12 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
       );
 
       if (results.isNotEmpty) {
+        // Hashear a nova senha antes de salvar
+        final hashedPassword = hashPassword(novaSenha);
+
         await conn.query(
           'UPDATE usuarios SET senha = ? WHERE email = ?',
-          [novaSenha, email],
+          [hashedPassword, email],
         );
         setState(() {
           _message = 'Senha alterada com sucesso!';
@@ -160,7 +169,6 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Botão Alterar Senha com Efeito de Zoom
             GestureDetector(
               onTap: _alterarSenha,
               onTapDown: (_) => setState(() => _scaleAlterarSenha = 0.9),
@@ -195,7 +203,6 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Link para Voltar
             InkWell(
               onTap: () {
                 Navigator.pop(context);
@@ -225,7 +232,6 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
               ),
             ),
 
-            // Mensagem de Erro ou Sucesso
             if (_message.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 16),

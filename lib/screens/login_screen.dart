@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:bcrypt/bcrypt.dart'; // Import necessário para bcrypt
 import '../db_connection.dart';
 import 'home_screen.dart';
 
@@ -18,36 +19,46 @@ class _LoginScreenState extends State<LoginScreen> {
 
   double _scaleEntrar = 1.0;
 
+  // Método para verificar senha usando bcrypt
+  bool verifyPassword(String plainPassword, String hashedPassword) {
+    return BCrypt.checkpw(plainPassword, hashedPassword);
+  }
+
   Future<void> _login() async {
     try {
       var conn = await DBConnection.getConnection();
       var results = await conn.query(
-        'SELECT * FROM usuarios WHERE email = ? AND senha = ?',
-        [_emailController.text, _senhaController.text],
+        'SELECT senha FROM usuarios WHERE email = ?',
+        [_emailController.text],
       );
 
       if (results.isNotEmpty) {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        }
-      } else {
-        if (mounted) {
+        final hashedPassword = results.first['senha'] as String;
+
+        // Verifica a senha utilizando o método verifyPassword
+        if (verifyPassword(_senhaController.text.trim(), hashedPassword)) {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          }
+        } else {
           setState(() {
-            _errorMessage = 'Email ou senha inválidos';
+            _errorMessage = 'Senha incorreta.';
           });
         }
+      } else {
+        setState(() {
+          _errorMessage = 'Usuário não encontrado.';
+        });
       }
 
       await conn.close();
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Erro ao conectar: $e';
-        });
-      }
+      setState(() {
+        _errorMessage = 'Erro ao conectar: $e';
+      });
     }
   }
 
@@ -69,8 +80,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Campo de Email
             TextField(
               controller: _emailController,
               style: GoogleFonts.inter(
@@ -85,15 +94,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: Color(0xFFDCDDE2)),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF333333)),
-                ),
               ),
             ),
             const SizedBox(height: 16),
-
-            // Campo de Senha
             TextField(
               controller: _senhaController,
               obscureText: true,
@@ -109,14 +112,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: Color(0xFFDCDDE2)),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF333333)),
-                ),
               ),
             ),
             const SizedBox(height: 20),
-
             GestureDetector(
               onTap: _login,
               onTapDown: (_) => setState(() => _scaleEntrar = 0.9),
@@ -140,16 +138,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text(
                       'Entrar',
                       style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-
             Column(
               children: [
                 InkWell(
@@ -175,13 +173,15 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-
             if (_errorMessage.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
                   _errorMessage,
-                  style: GoogleFonts.inter(fontSize: 14, color: Colors.red),
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.red,
+                  ),
                 ),
               ),
           ],
