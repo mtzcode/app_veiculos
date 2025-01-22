@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:bcrypt/bcrypt.dart'; // Import necessário para bcrypt
+import 'package:bcrypt/bcrypt.dart';
 import '../db_connection.dart';
 
 class CadastroScreen extends StatefulWidget {
@@ -19,6 +19,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
   String _message = '';
   double _scaleCadastrar = 1.0;
+  int _passwordStrength = 0;
+  String _strengthLabel = '';
 
   // Método para validar email
   bool _isValidEmail(String email) {
@@ -26,10 +28,38 @@ class _CadastroScreenState extends State<CadastroScreen> {
     return emailRegex.hasMatch(email);
   }
 
-  // Método para validar senha
-  bool _isValidPassword(String password) {
-    final passwordRegex = RegExp(r'^(?=.*[a-zA-Z])(?=.*\d).{8,}$');
-    return passwordRegex.hasMatch(password);
+  // Método para calcular a força da senha
+  int evaluatePasswordStrength(String password) {
+    int strength = 0;
+
+    if (password.length >= 8) strength++;
+    if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
+    if (RegExp(r'[a-z]').hasMatch(password)) strength++;
+    if (RegExp(r'[0-9]').hasMatch(password)) strength++;
+    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
+
+    return strength;
+  }
+
+  void _updatePasswordStrength(String password) {
+    setState(() {
+      _passwordStrength = evaluatePasswordStrength(password);
+      switch (_passwordStrength) {
+        case 1:
+        case 2:
+          _strengthLabel = 'Fraca';
+          break;
+        case 3:
+          _strengthLabel = 'Moderada';
+          break;
+        case 4:
+        case 5:
+          _strengthLabel = 'Forte';
+          break;
+        default:
+          _strengthLabel = 'Muito fraca';
+      }
+    });
   }
 
   // Método para cadastrar o usuário
@@ -56,10 +86,9 @@ class _CadastroScreenState extends State<CadastroScreen> {
       return;
     }
 
-    if (!_isValidPassword(senha)) {
+    if (_passwordStrength < 3) {
       setState(() {
-        _message =
-            'A senha deve ter pelo menos 8 caracteres e conter letras e números.';
+        _message = 'A senha deve ser pelo menos moderada.';
       });
       return;
     }
@@ -166,6 +195,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
             TextField(
               controller: _senhaController,
               obscureText: true,
+              onChanged: _updatePasswordStrength,
               style: GoogleFonts.inter(
                 fontSize: 16,
                 color: const Color(0xFF222222),
@@ -205,6 +235,36 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   borderSide: const BorderSide(color: Color(0xFFDCDDE2)),
                 ),
               ),
+            ),
+            const SizedBox(height: 8),
+
+            // Indicador de força da senha
+            Row(
+              children: [
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: _passwordStrength / 5,
+                    backgroundColor: Colors.grey[300],
+                    color: _passwordStrength < 3
+                        ? Colors.red
+                        : (_passwordStrength == 3
+                            ? Colors.orange
+                            : Colors.green),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _strengthLabel,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: _passwordStrength < 3
+                        ? Colors.red
+                        : (_passwordStrength == 3
+                            ? Colors.orange
+                            : Colors.green),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             GestureDetector(

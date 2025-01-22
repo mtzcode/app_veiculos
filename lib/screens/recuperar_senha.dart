@@ -19,6 +19,42 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
   String _message = '';
   bool _isHoveredVoltar = false;
   double _scaleAlterarSenha = 1.0;
+  int _passwordStrength = 0;
+  String _strengthLabel = '';
+
+  // Função para calcular a força da senha
+  int evaluatePasswordStrength(String password) {
+    int strength = 0;
+
+    if (password.length >= 8) strength++;
+    if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
+    if (RegExp(r'[a-z]').hasMatch(password)) strength++;
+    if (RegExp(r'[0-9]').hasMatch(password)) strength++;
+    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
+
+    return strength;
+  }
+
+  void _updatePasswordStrength(String password) {
+    setState(() {
+      _passwordStrength = evaluatePasswordStrength(password);
+      switch (_passwordStrength) {
+        case 1:
+        case 2:
+          _strengthLabel = 'Fraca';
+          break;
+        case 3:
+          _strengthLabel = 'Moderada';
+          break;
+        case 4:
+        case 5:
+          _strengthLabel = 'Forte';
+          break;
+        default:
+          _strengthLabel = 'Muito fraca';
+      }
+    });
+  }
 
   // Função para hashear a senha
   String hashPassword(String plainPassword) {
@@ -40,6 +76,13 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
     if (novaSenha != confirmarSenha) {
       setState(() {
         _message = 'As senhas não coincidem.';
+      });
+      return;
+    }
+
+    if (_passwordStrength < 3) {
+      setState(() {
+        _message = 'A senha deve ser pelo menos moderada.';
       });
       return;
     }
@@ -125,6 +168,7 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
             TextField(
               controller: _novaSenhaController,
               obscureText: true,
+              onChanged: _updatePasswordStrength,
               style: GoogleFonts.inter(
                   fontSize: 16, color: const Color(0xFF222222)),
               decoration: InputDecoration(
@@ -166,6 +210,36 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
                   borderSide: const BorderSide(color: Color(0xFF333333)),
                 ),
               ),
+            ),
+            const SizedBox(height: 8),
+
+            // Indicador de força da senha
+            Row(
+              children: [
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: _passwordStrength / 5,
+                    backgroundColor: Colors.grey[300],
+                    color: _passwordStrength < 3
+                        ? Colors.red
+                        : (_passwordStrength == 3
+                            ? Colors.orange
+                            : Colors.green),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _strengthLabel,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: _passwordStrength < 3
+                        ? Colors.red
+                        : (_passwordStrength == 3
+                            ? Colors.orange
+                            : Colors.green),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
 
