@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:bcrypt/bcrypt.dart'; // Import necessário para bcrypt
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:bcrypt/bcrypt.dart';
 import '../db_connection.dart';
 import 'home_screen.dart';
 
@@ -14,29 +15,101 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
+  bool _isPasswordVisible = false;
+  bool _rememberMe = false;
 
   String _errorMessage = '';
-
   double _scaleEntrar = 1.0;
 
-  // Método para verificar senha usando bcrypt
-  bool verifyPassword(String plainPassword, String hashedPassword) {
-    return BCrypt.checkpw(plainPassword, hashedPassword);
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
   }
 
-  Future<void> _login() async {
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email') ?? '';
+    final savedPassword = prefs.getString('saved_password') ?? '';
+    final savedRememberMe = prefs.getBool('remember_me') ?? false;
+
+    if (savedRememberMe && savedEmail.isNotEmpty && savedPassword.isNotEmpty) {
+      _emailController.text = savedEmail;
+      _senhaController.text = savedPassword;
+      setState(() {
+        _rememberMe = true;
+      });
+
+      // Realiza login automático se lembrar do usuário estiver ativo
+      await _autoLogin(savedEmail, savedPassword);
+    }
+  }
+
+  Future<void> _autoLogin(String email, String password) async {
     try {
       var conn = await DBConnection.getConnection();
       var results = await conn.query(
-        'SELECT senha FROM usuarios WHERE email = ?',
-        [_emailController.text],
+        'SELECT * FROM usuarios WHERE email = ?',
+        [email],
       );
 
       if (results.isNotEmpty) {
         final hashedPassword = results.first['senha'] as String;
 
-        // Verifica a senha utilizando o método verifyPassword
-        if (verifyPassword(_senhaController.text.trim(), hashedPassword)) {
+        if (BCrypt.checkpw(password, hashedPassword)) {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          }
+        }
+      }
+
+      await conn.close();
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Erro ao conectar: $e';
+      });
+    }
+  }
+
+  Future<void> _saveCredentials(String email, String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString('saved_email', email);
+      await prefs.setString('saved_password', password);
+      await prefs.setBool('remember_me', true);
+    } else {
+      await prefs.remove('saved_email');
+      await prefs.remove('saved_password');
+      await prefs.setBool('remember_me', false);
+    }
+  }
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final senha = _senhaController.text.trim();
+
+    if (email.isEmpty || senha.isEmpty) {
+      setState(() {
+        _errorMessage = 'Por favor, preencha todos os campos.';
+      });
+      return;
+    }
+
+    try {
+      var conn = await DBConnection.getConnection();
+      var results = await conn.query(
+        'SELECT * FROM usuarios WHERE email = ?',
+        [email],
+      );
+
+      if (results.isNotEmpty) {
+        final hashedPassword = results.first['senha'] as String;
+
+        if (BCrypt.checkpw(senha, hashedPassword)) {
+          await _saveCredentials(email, senha);
           if (mounted) {
             Navigator.pushReplacement(
               context,
@@ -80,6 +153,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 24),
+
+            // Campo de Email
             TextField(
               controller: _emailController,
               style: GoogleFonts.inter(
@@ -97,9 +172,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 16),
+
+            // Campo de Senha
             TextField(
               controller: _senhaController,
-              obscureText: true,
+              obscureText: !_isPasswordVisible,
               style: GoogleFonts.inter(
                   fontSize: 16, color: const Color(0xFF222222)),
               decoration: InputDecoration(
@@ -112,9 +189,43 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: Color(0xFFDCDDE2)),
                 ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                    color: const Color(0xFF333333),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 20),
+
+            // Checkbox Lembre-se de Mim
+            Row(
+              children: [
+                Checkbox(
+                  value: _rememberMe,
+                  onChanged: (value) {
+                    setState(() {
+                      _rememberMe = value ?? false;
+                    });
+                  },
+                ),
+                Text(
+                  'Lembre-se de mim',
+                  style: GoogleFonts.inter(
+                      fontSize: 14, color: const Color(0xFF333333)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
             GestureDetector(
               onTap: _login,
               onTapDown: (_) => setState(() => _scaleEntrar = 0.9),
@@ -148,6 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 20),
+
             Column(
               children: [
                 InkWell(
@@ -173,15 +285,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
+
             if (_errorMessage.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
                   _errorMessage,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.red,
-                  ),
+                  style: GoogleFonts.inter(fontSize: 14, color: Colors.red),
                 ),
               ),
           ],

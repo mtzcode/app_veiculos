@@ -18,6 +18,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
       TextEditingController();
 
   String _message = '';
+  bool _obscureSenha = true; // Controle para o campo de senha
   double _scaleCadastrar = 1.0;
   int _passwordStrength = 0;
   String _strengthLabel = '';
@@ -194,7 +195,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _senhaController,
-              obscureText: true,
+              obscureText: _obscureSenha,
               onChanged: _updatePasswordStrength,
               style: GoogleFonts.inter(
                 fontSize: 16,
@@ -202,6 +203,16 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
               decoration: InputDecoration(
                 labelText: 'Senha',
+                suffixIcon: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _obscureSenha = !_obscureSenha;
+                    });
+                  },
+                  child: Icon(
+                    _obscureSenha ? Icons.visibility_off : Icons.visibility,
+                  ),
+                ),
                 labelStyle: GoogleFonts.inter(
                   fontSize: 16,
                   color: const Color(0xFF333333),

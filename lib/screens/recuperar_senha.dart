@@ -17,7 +17,7 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
       TextEditingController();
 
   String _message = '';
-  bool _isHoveredVoltar = false;
+  bool _obscureNovaSenha = true;
   double _scaleAlterarSenha = 1.0;
   int _passwordStrength = 0;
   String _strengthLabel = '';
@@ -167,12 +167,22 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
             // Campo Nova Senha
             TextField(
               controller: _novaSenhaController,
-              obscureText: true,
+              obscureText: _obscureNovaSenha,
               onChanged: _updatePasswordStrength,
               style: GoogleFonts.inter(
                   fontSize: 16, color: const Color(0xFF222222)),
               decoration: InputDecoration(
                 labelText: 'Nova Senha',
+                suffixIcon: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _obscureNovaSenha = !_obscureNovaSenha;
+                    });
+                  },
+                  child: Icon(
+                    _obscureNovaSenha ? Icons.visibility_off : Icons.visibility,
+                  ),
+                ),
                 labelStyle: GoogleFonts.inter(
                     fontSize: 16, color: const Color(0xFF333333)),
                 filled: true,
@@ -281,28 +291,12 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
               onTap: () {
                 Navigator.pop(context);
               },
-              onHover: (hover) {
-                setState(() {
-                  _isHoveredVoltar = hover;
-                });
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'Voltar para login',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: const Color(0xFF333333),
-                    ),
-                  ),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    height: 2,
-                    width: _isHoveredVoltar ? 150 : 0,
-                    color: const Color(0xFFFF2964),
-                  ),
-                ],
+              child: Text(
+                'Voltar para login',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: const Color(0xFF333333),
+                ),
               ),
             ),
 
