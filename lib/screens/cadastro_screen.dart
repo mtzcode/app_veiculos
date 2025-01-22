@@ -17,7 +17,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
   final TextEditingController _confirmaSenhaController =
       TextEditingController();
 
-  String _message = '';
   bool _obscureSenha = true; // Controle para o campo de senha
   double _scaleCadastrar = 1.0;
   int _passwordStrength = 0;
@@ -63,6 +62,22 @@ class _CadastroScreenState extends State<CadastroScreen> {
     });
   }
 
+  // Exibe Snackbar para feedback
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF222222), // Fundo preto (#222)
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   // Método para cadastrar o usuário
   Future<void> _cadastrarUsuario() async {
     final nome = _nomeController.text.trim();
@@ -74,30 +89,22 @@ class _CadastroScreenState extends State<CadastroScreen> {
         email.isEmpty ||
         senha.isEmpty ||
         confirmaSenha.isEmpty) {
-      setState(() {
-        _message = 'Por favor, preencha todos os campos.';
-      });
+      _showSnackbar('Por favor, preencha todos os campos.');
       return;
     }
 
     if (!_isValidEmail(email)) {
-      setState(() {
-        _message = 'Por favor, insira um e-mail válido.';
-      });
+      _showSnackbar('Por favor, insira um e-mail válido.');
       return;
     }
 
     if (_passwordStrength < 3) {
-      setState(() {
-        _message = 'A senha deve ser pelo menos moderada.';
-      });
+      _showSnackbar('A senha deve ser pelo menos moderada.');
       return;
     }
 
     if (senha != confirmaSenha) {
-      setState(() {
-        _message = 'As senhas não coincidem.';
-      });
+      _showSnackbar('As senhas não coincidem.');
       return;
     }
 
@@ -112,24 +119,18 @@ class _CadastroScreenState extends State<CadastroScreen> {
       );
 
       if (result.affectedRows == 1) {
-        setState(() {
-          _message = 'Cadastro realizado com sucesso!';
-        });
+        _showSnackbar('Cadastro realizado com sucesso!');
         _nomeController.clear();
         _emailController.clear();
         _senhaController.clear();
         _confirmaSenhaController.clear();
       } else {
-        setState(() {
-          _message = 'Erro ao cadastrar usuário.';
-        });
+        _showSnackbar('Erro ao cadastrar usuário.');
       }
 
       await conn.close();
     } catch (e) {
-      setState(() {
-        _message = 'Erro ao conectar: $e';
-      });
+      _showSnackbar('Erro ao conectar ao banco de dados.');
     }
   }
 
@@ -323,19 +324,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 ),
               ),
             ),
-            if (_message.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  _message,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: _message.contains('sucesso')
-                        ? Colors.green
-                        : Colors.red,
-                  ),
-                ),
-              ),
           ],
         ),
       ),

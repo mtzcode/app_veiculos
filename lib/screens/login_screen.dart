@@ -18,7 +18,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
 
-  String _errorMessage = '';
   double _scaleEntrar = 1.0;
 
   @override
@@ -68,9 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await conn.close();
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao conectar: $e';
-      });
+      _showSnackbar('Erro ao conectar ao banco de dados.');
     }
   }
 
@@ -92,9 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final senha = _senhaController.text.trim();
 
     if (email.isEmpty || senha.isEmpty) {
-      setState(() {
-        _errorMessage = 'Por favor, preencha todos os campos.';
-      });
+      _showSnackbar('Por favor, preencha todos os campos.');
       return;
     }
 
@@ -117,22 +112,31 @@ class _LoginScreenState extends State<LoginScreen> {
             );
           }
         } else {
-          setState(() {
-            _errorMessage = 'Senha incorreta.';
-          });
+          _showSnackbar('Senha incorreta. Tente novamente.');
         }
       } else {
-        setState(() {
-          _errorMessage = 'Usuário não encontrado.';
-        });
+        _showSnackbar('E-mail não encontrado. Verifique suas credenciais.');
       }
 
       await conn.close();
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao conectar: $e';
-      });
+      _showSnackbar('Erro ao conectar ao banco de dados.');
     }
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.inter(fontSize: 14, color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF222222), // Fundo #222
+        behavior: SnackBarBehavior.floating, // Eleva o Snackbar
+        margin: const EdgeInsets.all(16), // Margem ao redor do Snackbar
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -285,15 +289,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-
-            if (_errorMessage.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  _errorMessage,
-                  style: GoogleFonts.inter(fontSize: 14, color: Colors.red),
-                ),
-              ),
           ],
         ),
       ),
