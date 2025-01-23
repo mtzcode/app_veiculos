@@ -48,14 +48,16 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       var conn = await DBConnection.getConnection();
       var results = await conn.query(
-        'SELECT * FROM usuarios WHERE email = ?',
+        'SELECT id, senha FROM usuarios WHERE email = ?',
         [email],
       );
 
       if (results.isNotEmpty) {
         final hashedPassword = results.first['senha'] as String;
+        final userId = results.first['id'] as int;
 
         if (BCrypt.checkpw(password, hashedPassword)) {
+          await _saveUserId(userId); // Salva o ID do usuário
           if (mounted) {
             Navigator.pushReplacement(
               context,
@@ -69,6 +71,11 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       _showSnackbar('Erro ao conectar ao banco de dados.');
     }
+  }
+
+  Future<void> _saveUserId(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('user_id', userId);
   }
 
   Future<void> _saveCredentials(String email, String password) async {
@@ -96,15 +103,18 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       var conn = await DBConnection.getConnection();
       var results = await conn.query(
-        'SELECT * FROM usuarios WHERE email = ?',
+        'SELECT id, senha FROM usuarios WHERE email = ?',
         [email],
       );
 
       if (results.isNotEmpty) {
         final hashedPassword = results.first['senha'] as String;
+        final userId = results.first['id'] as int;
 
         if (BCrypt.checkpw(senha, hashedPassword)) {
-          await _saveCredentials(email, senha);
+          await _saveUserId(userId); // Salva o ID do usuário logado
+          await _saveCredentials(
+              email, senha); // Salva credenciais se necessário
           if (mounted) {
             Navigator.pushReplacement(
               context,
